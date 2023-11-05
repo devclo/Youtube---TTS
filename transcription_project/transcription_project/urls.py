@@ -16,7 +16,9 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path
+from transcription_app.views import TranscriptionView
 
 urlpatterns = [
     path("admin/", admin.site.urls),
+    path('transcribe/', TranscriptionView.as_view(), name='transcribe'),
 ]
