@@ -1,42 +1,69 @@
+# tasks.py in your Django app directory
+
 from celery import shared_task
-from .models import Transcription
-from whisper import load_model
-# You might need additional libraries for handling video and audio extraction
-from moviepy.editor import VideoFileClip
 import os
-import tempfile
+from moviepy.editor import VideoFileClip
+import yt_dlp
+import whisper
 
 @shared_task
-def transcribe_video_from_url(video_url, transcription_id):
-    transcription_instance = Transcription.objects.get(id=transcription_id)
-    transcription_instance.status = 'processing'
-    transcription_instance.save()
+def sanitize_filename(filename):
+    # Replace special characters in filename with an underscore
+    return "".join([c if c.isalnum() or c in " .-_" else "_" for c in filename])
 
+@shared_task
+def download_video(video_url, output_path='downloads'):
+    # Ensure the output directory exists
+    if not os.path.exists(output_path):
+        os.makedirs(output_path)
+
+    # Download options for yt-dlp
+    ydl_opts = {
+        'format': 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best',
+        'outtmpl': os.path.join(output_path, '%(title)s.%(ext)s'),
+        'merge_output_format': 'mp4',
+    }
+
+    # Download the video using yt-dlp
+    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        info_dict = ydl.extract_info(video_url, download=True)
+        filename = ydl.prepare_filename(info_dict)
+        if not os.path.exists(filename):
+            # Attempt to fix filename discrepancies
+            filename = sanitize_filename(filename)
+            if not os.path.exists(filename):
+                raise FileNotFoundError(f"The video file {filename} was not found. Download may have failed.")
+        return filename
+
+@shared_task
+def extract_audio(video_path):
+    # Extract audio from video using moviepy
+    video_clip = VideoFileClip(video_path)
+    audio_path = video_path.rsplit('.', 1)[0] + '.wav'  # Change extension to .wav
+    video_clip.audio.write_audiofile(audio_path)
+    video_clip.close()
+    return audio_path
+
+@shared_task
+def transcribe_audio(audio_path):
+    # Load Whisper model and transcribe audio
+    model = whisper.load_model("base")
+    result = model.transcribe(audio_path)
+    return result["text"]
+
+@shared_task
+def transcribe_video_from_url(video_url):
+    # Chain the tasks to download, extract audio, and transcribe
     try:
-        # Assuming a function `download_video` exists
-        video_path = download_video(video_url)  # You need to define this function
-        clip = VideoFileClip(video_path)
-        with tempfile.NamedTemporaryFile(suffix='.mp3', delete=False) as audio:
-            clip.audio.write_audiofile(audio.name)
-            clip.close()
+        video_path = download_video(video_url)
+        audio_path = extract_audio(video_path)
+        transcription = transcribe_audio(audio_path)
 
-            # Load your model (small, medium, or large)
-            model = load_model("small")
+        # Cleanup the temporary files
+        os.remove(audio_path)
+        os.remove(video_path)
 
-            # Transcribe the audio file
-            result = model.transcribe(audio.name)
-            transcription = result['text']
-
-        # Update transcription_instance fields after processing
-        transcription_instance.transcription_text = transcription
-        transcription_instance.status = 'completed'
-
-        # Optionally, remove the temporary audio file
-        os.remove(audio.name)
-
+        return transcription
     except Exception as e:
-        transcription_instance.status = 'failed'
-        transcription_instance.transcription_text = str(e)
-
-    finally:
-        transcription_instance.save()
+        # Log or handle exception appropriately
+        raise e

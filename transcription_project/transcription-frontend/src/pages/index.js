@@ -1,71 +1,101 @@
-import Head from 'next/head';
-import { useState } from 'react';
 import axios from 'axios';
-import styles from '@/styles/Home.module.css'; // Make sure the path to your styles is correct
-
-
-
+import { useState } from 'react';
 
 export default function Home() {
-  const [videoUrl, setVideoUrl] = useState('');
-  const [transcription, setTranscription] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [videoURL, setVideoURL] = useState('');
+  const [processing, setProcessing] = useState(false);
+  const [videoInfo, setVideoInfo] = useState(null);
+  const [taskId, setTaskId] = useState(null);
 
-  const handleSubmit = async (event) => {
-    event.preventDefault();
-    setLoading(true);
-    setError('');
+  // Function to poll for the result of the transcription
+  const pollForTranscription = async (taskId) => {
     try {
-      const response = await axios.post('http://localhost:8000/transcribe/', { video_url: videoUrl });
-      setTranscription(response.data);
-    } catch (err) {
-      console.error('There was an error!', err);
-      setError('Failed to transcribe the video.');
-    } finally {
-      setLoading(false);
+      // Polling every 5 seconds (5000 milliseconds)
+      const intervalId = setInterval(async () => {
+        const response = await axios.get(`/api/check-task-status/${taskId}`);
+        const { status, result } = response.data;
+
+        if (status === 'SUCCESS') {
+          clearInterval(intervalId);
+          setVideoInfo({ ...videoInfo, transcription: result });
+          setProcessing(false);
+        } else if (status === 'FAILURE') {
+          clearInterval(intervalId);
+          setProcessing(false);
+          // You should add proper error handling here
+          console.error('Error transcribing video');
+        }
+        // If the status is 'PENDING' or 'STARTED', we do nothing and keep polling
+      }, 5000);
+    } catch (error) {
+      clearInterval(intervalId);
+      setProcessing(false);
+      console.error('Error polling for transcription:', error);
+    }
+  };
+
+  const handleTranscribe = async () => {
+    setProcessing(true);
+    try {
+      // Start the transcription task
+      const response = await axios.post('/api/transcribe-video', { video_url: videoURL });
+      const { task_id } = response.data;
+      setTaskId(task_id);
+      
+      // Poll for the result of the transcription
+      pollForTranscription(task_id);
+    } catch (error) {
+      console.error('Error starting transcription task:', error);
+      setProcessing(false);
     }
   };
 
   return (
     <div>
-      <Head>
-        <title>Video Transcriber</title>
-        <meta name="description" content="Transcribe your videos easily" />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <link rel="icon" href="/favicon.ico" />
-      </Head>
+      <input
+        type="text"
+        value={videoURL}
+        onChange={(e) => setVideoURL(e.target.value)}
+        placeholder="Enter YouTube Video URL"
+      />
+      <button onClick={handleTranscribe} disabled={processing}>
+        {processing ? 'Processing...' : 'Transcribe Video'}
+      </button>
 
-      <main className={styles.main}>
-        <h1 className={styles.title}>
-          Video Transcriber
-        </h1>
-
-        <div className={styles.transcriptionForm}>
-          <form onSubmit={handleSubmit}>
-            <input
-              type="text"
-              value={videoUrl}
-              onChange={(e) => setVideoUrl(e.target.value)}
-              placeholder="Enter video URL"
-              required
-              className={styles.input}
-            />
-            <button type="submit" disabled={loading} className={styles.button}>
-              {loading ? 'Transcribing...' : 'Transcribe'}
-            </button>
-          </form>
-
-          {transcription && (
-            <div className={styles.transcriptionResult}>
-              <h2>Transcription Result:</h2>
-              <p>{transcription.transcription_text}</p>
-            </div>
+      {videoInfo && (
+        <div>
+          {/* Display video information and buttons to download and show transcription */}
+          <p>Title: {videoInfo.title}</p>
+          {/* Embed the YouTube video if videoId is available */}
+          {videoInfo.videoId && (
+            <iframe
+              width="560"
+              height="315"
+              src={`https://www.youtube.com/embed/${videoInfo.videoId}`} 
+              title="YouTube video player"
+              frameBorder="0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+            ></iframe>
+          )}
+          
+          {/* Assuming `videoInfo` has a property `transcriptionUrl` for downloading the transcription */}
+          {videoInfo.transcriptionUrl && (
+            <a href={videoInfo.transcriptionUrl} download="transcription.txt">
+              Download Transcription
+            </a>
           )}
 
-          {error && <p className={styles.error}>{error}</p>}
+          {/* Assuming `videoInfo` has a property `transcription` which contains the transcription text */}
+          {videoInfo.transcription && (
+            <div>
+              <h3>Transcription Preview:</h3>
+              <p>{videoInfo.transcription}</p>
+            </div>
+          )}
         </div>
-      </main>
+      )}
     </div>
   );
 }
+
