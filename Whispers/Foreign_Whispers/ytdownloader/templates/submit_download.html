@@ -1,6 +1,0 @@
-<!-- templates/submit_download.html -->
-<form method="post" action="{% url 'submit_download' %}">
-    {% csrf_token %}
-    <input type="text" name="playlist_url" placeholder="Enter YouTube playlist URL">
-    <input type="submit" value="Download">
-</form>
