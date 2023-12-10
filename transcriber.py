@@ -2,7 +2,7 @@ import streamlit as st
 from translate import Translator
 import yt_dlp
 import ffmpeg
-from moviepy.editor import VideoFileClip
+from moviepy.editor import VideoFileClip, AudioFileClip
 import os
 import srt
 from datetime import timedelta
@@ -12,7 +12,7 @@ import whisper
 from speechbrain.pretrained import Tacotron2, HIFIGAN
 
 # Function to set up the TTS and Vocoder
-@st.cache(allow_output_mutation=True, suppress_st_warning=True)
+@st.cache_resource
 def setup_tts():
     tacotron2 = Tacotron2.from_hparams(source="speechbrain/tts-tacotron2-ljspeech", savedir="tmpdir_tts")
     hifi_gan = HIFIGAN.from_hparams(source="speechbrain/tts-hifigan-ljspeech", savedir="tmpdir_vocoder")
@@ -131,7 +131,6 @@ def main():
             waveforms = hifi_gan.decode_batch(mel_output)
             tts_audio_path = "tts_audio.wav"
             torchaudio.save(tts_audio_path, waveforms.squeeze(1), 22050)
-            torchaudio.save(tts_audio_path, waveforms.squeeze(1), 22050)
 
         with st.spinner("Combining Audio with Video..."):
             tts_audio_clip = AudioFileClip(tts_audio_path)
@@ -139,8 +138,24 @@ def main():
             output_video_path = 'final_video.mp4'
             final_clip.write_videofile(output_video_path, codec
                                        ='libx264', audio_codec='aac')
+            
+        with st.spinner("Burning Subtitles and Combining Audio with Video..."):
+            # Create a temporary video file path to burn subtitles
+            video_with_subs_path = 'video_with_subs.mp4'
+            # Burn the subtitles onto the video
+            burn_subtitles(video_title, srt_file_to_use, video_with_subs_path)
+            
+            # Load the video with subtitles
+            video_with_subs_clip = VideoFileClip(video_with_subs_path)
+            # Set the TTS audio on the video with subtitles
+            final_clip = video_with_subs_clip.set_audio(AudioFileClip(tts_audio_path))
+            output_video_path = 'final_video.mp4'
+            final_clip.write_videofile(output_video_path, codec='libx264', audio_codec='aac')
 
-            st.video(output_video_path)
+            # Display the final video with subtitles and TTS audio
+            st.video(output_video_path)    
+
+
 
         with open("final_video.mp4", 'rb') as f:
             st.download_button(label="Download Video", data=f, file_name="final_video.mp4", mime="video/mp4")
