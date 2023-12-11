@@ -1,0 +1,14 @@
+
+Previous Github Branch/Repo:
+git clone -b Foreign-Whipsers https://github.com/devclo/Intro-To-Artificial-Intelligence.git
+
+
+Required Python Libraries:
+pip install streamlit yt-dlp moviepy torchaudio openai-whisper speechbrain translate srt ffmpeg
+
+sudo apt install ffmpeg -y
+
+
+Test Video: 
+https://www.youtube.com/shorts/VEpxIAY6TI4?feature=share
+
