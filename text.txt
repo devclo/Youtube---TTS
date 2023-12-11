@@ -1,6 +1,6 @@
 
 Previous Github Branch/Repo:
-git clone -b Foreign-Whipsers https://github.com/devclo/Intro-To-Artificial-Intelligence.git
+git clone https://github.com/devclo/Foreign-Whispers.git
 
 
 Required Python Libraries:
