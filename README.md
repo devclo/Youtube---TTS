@@ -1,7 +1,4 @@
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> 03c0be0 (update-readme)
+
 # YouTube Video to TTS with Subtitles #
 
 ## Overview ##
@@ -17,13 +14,6 @@ This project uses Streamlit to create a web application that converts YouTube vi
 * Generate TTS audio using SpeechBrain's Tacotron2 and HIFIGAN models.
 * Burn subtitles into the video.
 * Combine TTS audio with the video.
-
-<<<<<<< HEAD
-=======
->>>>>>> 26fa312 (update#)
-=======
->>>>>>> 03c0be0 (update-readme)
-
 ## Dependencies ##
 
 * streamlit
@@ -50,8 +40,6 @@ Run the application with Streamlit
 ```bash
 streamlit run transciber.py
 ```
-<<<<<<< HEAD
-=======
 
 
 ## Navigate to the provided URL to access the web application. ##
@@ -70,8 +58,6 @@ streamlit run transciber.py
 Ensure you have a stable internet connection for downloading videos and models.
 The translation feature currently supports English to German. More languages can be added by modifying the translate_text function.
 
-
->>>>>>> 03c0be0 (update-readme)
 
 
 ## Navigate to the provided URL to access the web application. ##
