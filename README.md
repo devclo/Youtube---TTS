@@ -28,17 +28,19 @@ This project uses Streamlit to create a web application that converts YouTube vi
 
 ## Installation ##
 
-Before running the application, ensure you have Python installed and then install the required dependencies:
+Save the Script: Copy the content of setup.sh into a file named setup.sh in the root directory of your project.
+Give Execution Permission: Before running the script, give it execution permissions. You can do this by running the following command in your terminal:
+
 ```bash
-pip install streamlit yt-dlp ffmpeg-python moviepy srt torchaudio whisper
+chmod +x setup.sh
 ```
 
 ## Usage ##
 
-Run the application with Streamlit
+Run the application
 
 ```bash
-streamlit run transciber.py
+./setup.sh
 ```
 
 
