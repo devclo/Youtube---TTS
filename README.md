@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # YouTube Video to TTS with Subtitles #
 
 ## Overview ##
@@ -14,6 +15,8 @@ This project uses Streamlit to create a web application that converts YouTube vi
 * Burn subtitles into the video.
 * Combine TTS audio with the video.
 
+=======
+>>>>>>> 26fa312 (update#)
 
 ## Dependencies ##
 
